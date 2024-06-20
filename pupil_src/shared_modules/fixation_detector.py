@@ -163,12 +163,16 @@ def detect_fixations(
     capture, gaze_data, max_dispersion, min_duration, max_duration, min_data_confidence
 ):
     yield "Detecting fixations...", ()
-    gaze_data = (
-        fm.Serialized_Dict(msgpack_bytes=serialized) for serialized in gaze_data
-    )
-    gaze_data = [
-        datum for datum in gaze_data if datum["confidence"] > min_data_confidence
-    ]
+    filtered_gaze_data = []
+    for i,serialized in enumerate(gaze_data):
+        try:
+            datum = fm.Serialized_Dict(msgpack_bytes=serialized)
+            if datum["confidence"] > min_data_confidence:
+                filtered_gaze_data.append(datum)
+        except Exception as exc:
+            logger.warning(f"Possible corrupt data on idx={i}: {exc}")
+
+    gaze_data = filtered_gaze_data
     if not gaze_data:
         logger.warning("No data available to find fixations")
         return "Fixation detection failed", ()

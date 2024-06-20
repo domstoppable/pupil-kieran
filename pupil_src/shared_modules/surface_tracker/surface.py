@@ -248,33 +248,37 @@ class Surface(abc.ABC):
 
         """
         results = []
-        for event in events:
-            gaze_norm_pos = event["norm_pos"]
-            gaze_img_point = methods.denormalize(
-                gaze_norm_pos, camera_model.resolution, flip_y=True
-            )
-            gaze_img_point = np.array(gaze_img_point)
-            surf_norm_pos = self.map_to_surf(
-                gaze_img_point,
-                camera_model,
-                compensate_distortion=True,
-                trans_matrix=trans_matrix,
-            )
-            on_srf = bool((0 <= surf_norm_pos[0] <= 1) and (0 <= surf_norm_pos[1] <= 1))
+        for idx,event in enumerate(events):
+            try:
+                gaze_norm_pos = event["norm_pos"]
+                gaze_img_point = methods.denormalize(
+                    gaze_norm_pos, camera_model.resolution, flip_y=True
+                )
+                gaze_img_point = np.array(gaze_img_point)
+                surf_norm_pos = self.map_to_surf(
+                    gaze_img_point,
+                    camera_model,
+                    compensate_distortion=True,
+                    trans_matrix=trans_matrix,
+                )
+                on_srf = bool((0 <= surf_norm_pos[0] <= 1) and (0 <= surf_norm_pos[1] <= 1))
 
-            mapped_datum = {
-                "topic": f"{event['topic']}_on_surface",
-                "norm_pos": surf_norm_pos.tolist(),
-                "confidence": event["confidence"],
-                "on_surf": on_srf,
-                "base_data": (event["topic"], event["timestamp"]),
-                "timestamp": event["timestamp"],
-            }
-            if event["topic"] == "fixations":
-                mapped_datum["id"] = event["id"]
-                mapped_datum["duration"] = event["duration"]
-                mapped_datum["dispersion"] = event["dispersion"]
-            results.append(mapped_datum)
+                mapped_datum = {
+                    "topic": f"{event['topic']}_on_surface",
+                    "norm_pos": surf_norm_pos.tolist(),
+                    "confidence": event["confidence"],
+                    "on_surf": on_srf,
+                    "base_data": (event["topic"], event["timestamp"]),
+                    "timestamp": event["timestamp"],
+                }
+                if event["topic"] == "fixations":
+                    mapped_datum["id"] = event["id"]
+                    mapped_datum["duration"] = event["duration"]
+                    mapped_datum["dispersion"] = event["dispersion"]
+                results.append(mapped_datum)
+            except Exception as exc:
+                logger.warning("Possible corrupt data on idx={idx}: {exc}")
+
         return results
 
     @abc.abstractmethod

@@ -272,10 +272,13 @@ class _Base_Positions_Exporter(abc.ABC):
             dict_writer.writeheader()
 
             for g, idx in zip(export_section["data"], export_world_idc):
-                if g["confidence"] < min_confidence_threshold:
-                    continue
-                dict_row = type(self).dict_export(raw_value=g, world_index=idx)
-                dict_writer.writerow(dict_row)
+                try:
+                    if g["confidence"] < min_confidence_threshold:
+                        continue
+                    dict_row = type(self).dict_export(raw_value=g, world_index=idx)
+                    dict_writer.writerow(dict_row)
+                except Exception as exc:
+                    logger.warning(f"Possible corrupt data on idx={idx}: {exc}")
 
         logger.info(f"Created '{export_file}' file.")
 
